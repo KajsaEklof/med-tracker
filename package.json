@@ -1,0 +1,8 @@
+{
+  "name": "medi-track",
+  "private": true,
+  "scripts": {
+    "serve": "npx serve . -l 3000",
+    "serve:project-path": "cd .. && npx serve . -l 3000"
+  }
+}

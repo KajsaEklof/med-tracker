@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f766e">
+    <title>MedTracker - Child Medication Log</title>
+    
+    <!-- Base path: empty at root (local), /medi-track when under that path (GitHub Pages) -->
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        window.BASE_PATH = p.startsWith('/medi-track') ? '/medi-track' : '';
+        var base = document.createElement('base');
+        base.href = (window.BASE_PATH || '/') + (window.BASE_PATH ? '/' : '');
+        document.head.appendChild(base);
+      })();
+    </script>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="screen">
+            <div class="auth-container">
+                <div class="logo-section">
+                    <div class="logo-icon">💊</div>
+                    <h1>MedTracker</h1>
+                    <p class="tagline">Safe medication tracking for your child</p>
+                </div>
+                
+                <div class="auth-forms">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+                        <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <form id="login-form" class="auth-form active">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                        <div id="login-error" class="error-message"></div>
+                    </form>
+                    
+                    <!-- Signup Form -->
+                    <form id="signup-form" class="auth-form">
+                        <div class="form-group">
+                            <label for="signup-name">Your Name</label>
+                            <input type="text" id="signup-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-email">Email</label>
+                            <input type="email" id="signup-email" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <input type="password" id="signup-password" required autocomplete="new-password" minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                        <div id="signup-error" class="error-message"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Screen -->
+        <div id="main-screen" class="screen" style="display: none;">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-content">
+                    <h1>💊 MedTracker</h1>
+                    <div class="header-actions">
+                        <button class="btn-icon" onclick="showSettings()" title="Settings">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="10" cy="10" r="3"/>
+                                <path d="M10 1v2m0 14v2M3.93 3.93l1.41 1.41m9.9 9.9l1.41 1.41M1 10h2m14 0h2M3.93 16.07l1.41-1.41m9.9-9.9l1.41-1.41"/>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" onclick="logout()" title="Logout">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M7 19H3a2 2 0 01-2-2V3a2 2 0 012-2h4M14 15l5-5-5-5M19 10H7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Child Selection -->
+            <div id="child-select-section" class="container">
+                <div class="section-header">
+                    <h2>Select Child</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="showAddChildModal()">+ Add Child</button>
+                </div>
+                <div id="children-list" class="children-grid"></div>
+            </div>
+
+            <!-- Medication Tracking -->
+            <div id="tracking-section" class="container" style="display: none;">
+                <div class="child-header">
+                    <button class="btn-back" onclick="backToChildSelection()">← Back</button>
+                    <h2 id="current-child-name"></h2>
+                </div>
+
+                <!-- Quick Status -->
+                <div class="status-cards">
+                    <div class="status-card paracetamol">
+                        <div class="status-header">
+                            <h3>Paracetamol</h3>
+                            <span class="dose-info" id="para-dose-info"></span>
+                        </div>
+                        <div class="time-since" id="para-time-since">No doses recorded</div>
+                        <div class="next-dose" id="para-next-dose"></div>
+                        <button class="btn btn-primary" onclick="showAddDoseModal('paracetamol')" id="para-add-btn">Add Dose</button>
+                    </div>
+                    
+                    <div class="status-card ibuprofen">
+                        <div class="status-header">
+                            <h3>Ibuprofen</h3>
+                            <span class="dose-info" id="ibu-dose-info"></span>
+                        </div>
+                        <div class="time-since" id="ibu-time-since">No doses recorded</div>
+                        <div class="next-dose" id="ibu-next-dose"></div>
+                        <button class="btn btn-primary" onclick="showAddDoseModal('ibuprofen')" id="ibu-add-btn">Add Dose</button>
+                    </div>
+                </div>
+
+                <!-- Recent Doses -->
+                <div class="section-header">
+                    <h3>Recent Doses</h3>
+                </div>
+                <div id="doses-list" class="doses-list"></div>
+            </div>
+        </div>
+
+        <!-- Add Child Modal -->
+        <div id="add-child-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Child</h3>
+                    <button class="btn-close" onclick="closeModal('add-child-modal')">&times;</button>
+                </div>
+                <form id="add-child-form">
+                    <div class="form-group">
+                        <label for="child-name">Child's Name</label>
+                        <input type="text" id="child-name" required>
+                    </div>
+                    <!-- <div class="form-group">
+                        <label for="child-weight">Weight (kg) - Optional</label>
+                        <input type="number" id="child-weight" step="0.1" min="0">
+                        <small>Used for dose calculation guidance</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="child-age">Age (years) - Optional</label>
+                        <input type="number" id="child-age" step="0.5" min="0">
+                    </div> -->
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('add-child-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Child</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Dose Modal -->
+        <div id="add-dose-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="dose-modal-title">Add Dose</h3>
+                    <button class="btn-close" onclick="closeModal('add-dose-modal')">&times;</button>
+                </div>
+                <form id="add-dose-form">
+                    <input type="hidden" id="dose-medication">
+                    
+                    <div class="form-group">
+                        <label for="dose-amount">Amount (ml or mg)</label>
+                        <input type="number" id="dose-amount" step="0.5" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dose-time">Time Given</label>
+                        <input type="datetime-local" id="dose-time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dose-notes">Notes (optional)</label>
+                        <textarea id="dose-notes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('add-dose-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Dose</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="btn-close" onclick="closeModal('settings-modal')">&times;</button>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-section">
+                        <h4>Share Access</h4>
+                        <p class="setting-description">Share this child's medication log with your partner or caregiver</p>
+                        <div class="form-group">
+                            <label for="share-email">Email to share with</label>
+                            <input type="email" id="share-email" placeholder="partner@example.com">
+                        </div>
+                        <button class="btn btn-primary" onclick="shareAccess()">Send Invite</button>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h4>Current User</h4>
+                        <p id="current-user-email"></p>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4>Medication Guidelines</h4>
+                        <div class="guidelines">
+                            <p><strong>Paracetamol:</strong> Can be given every 4-6 hours. Maximum 4 doses in 24 hours.</p>
+                            <p><strong>Ibuprofen:</strong> Can be given every 6-8 hours. Maximum 3 doses in 24 hours.</p>
+                            <p class="warning-text">⚠️ Always consult your doctor or pharmacist for proper dosing based on your child's age and weight.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Register service worker for PWA functionality (project path)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                var base = window.BASE_PATH || '';
+                navigator.serviceWorker.register(base + '/sw.js', { scope: base + '/' })
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>

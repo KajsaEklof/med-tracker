@@ -1,0 +1,30 @@
+{
+  "name": "MedTracker - Child Medication Log",
+  "short_name": "MedTracker",
+  "description": "Track paracetamol and ibuprofen doses for your child",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "health",
+    "medical",
+    "utilities"
+  ],
+  "prefer_related_applications": false
+}
