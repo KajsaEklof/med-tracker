@@ -15,4 +15,4 @@ Thumbs.db
 # Environment variables (if you add them later)
 .env
 .env.local
-.config.js
+config.js
