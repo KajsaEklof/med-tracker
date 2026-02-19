@@ -1,14 +1,14 @@
-console.log('📝 app.js file is being parsed...');
+// console.log('📝 app.js file is being parsed...');
 
 // Supabase Configuration - loaded from config.js
 const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 
-console.log('🔧 Config loaded:', { 
-    hasConfig: !!window.CONFIG, 
-    url: SUPABASE_URL,
-    hasKey: SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
-});
+// console.log('🔧 Config loaded:', { 
+//     hasConfig: !!window.CONFIG, 
+//     url: SUPABASE_URL,
+//     hasKey: SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
+// });
 
 let supabaseClient;
 let currentUser = null;
@@ -58,6 +58,22 @@ async function init() {
         setupRealtimeSubscriptions();
     }
 }
+
+let tapCount = 0;
+let tapTimer;
+
+function secretTap() {
+  tapCount++;
+  clearTimeout(tapTimer);
+  
+  tapTimer = setTimeout(() => {
+    tapCount = 0 }, 2000);
+  
+  if (tapCount >= 5) {
+      tapCount = 0;
+      showRestoreButton();
+  }
+};
 
 // Show/Hide screens
 function showAuthScreen() {
@@ -611,16 +627,41 @@ function formatDateTime(date) {
     });
 }
 
+function showRestoreButton() {
+    const btn = document.getElementById('restore-btn');
+    btn.style.display = 'block';
+}
+
+async function restoreProject() {
+  console.log('⏳ Restore button clicked, starting restore process...');
+    const btn = document.getElementById('restore-btn');
+    btn.textContent = '⏳ Restoring...';
+    btn.disabled = true;
+    
+    const resp = await fetch('/https://trigger.comnoco.com/t/d1d6b0da-3b86-486c-a660-904a79e18ecb/Supabase-Restore-Project', { 
+      method: 'GET',
+      headers: {
+        'API-KEY': window.CONFIG?.COMNOCO_API_KEY || 'COMNOCO_API_KEY_NOT_SET'
+      }
+    });
+
+    console.log('🔄 Restore API response:', resp)
+    console.log('🔄 Restore API response status:', resp.status);
+    console.log('🔄 Restore API response body:', await resp.json());
+    
+    btn.textContent = '✅ Restoring! Wait ~30 seconds then refresh.';
+}
+
 // Initialize app when DOM is ready
-console.log('🚀 Script file loaded, about to initialize...');
+// console.log('🚀 Script file loaded, about to initialize...');
 
 if (document.readyState === 'loading') {
-    console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
+    // console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('✅ DOMContentLoaded fired, calling init()');
+        // console.log('✅ DOMContentLoaded fired, calling init()');
         init().catch(err => console.error('Init error:', err));
     });
 } else {
-    console.log('✅ DOM already ready, calling init() immediately');
+    // console.log('✅ DOM already ready, calling init() immediately');
     init().catch(err => console.error('Init error:', err));
 }

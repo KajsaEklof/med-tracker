@@ -769,3 +769,8 @@ body {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+#restore-btn {
+  display: none;
+  margin: 1rem auto;
+}
