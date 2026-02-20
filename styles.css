@@ -1,9 +1,9 @@
 /* CSS Variables */
 :root {
-    --primary-color: #0f766e;
-    --primary-dark: #0d5d56;
-    --primary-light: #14b8a6;
-    --secondary-color: #7c3aed;
+    --primary-color: #01778b; /*#0f766e;*/
+    --primary-dark: #015f6e;
+    --primary-light: #018fa6;
+    --secondary-color: #014f5c;
     --background: #f8fafc;
     --surface: #ffffff;
     --text-primary: #1e293b;
@@ -11,9 +11,9 @@
     --border: #e2e8f0;
     --success: #10b981;
     --warning: #f59e0b;
-    --error: #ef4444;
-    --paracetamol: #3b82f6;
-    --ibuprofen: #8b5cf6;
+    --error: #ef4444; 
+    --paracetamol: #0049c1;
+    --ibuprofen: #a936a7;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
@@ -45,6 +45,12 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 1.5rem;
+}
+
+.child-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* Auth Screen */
