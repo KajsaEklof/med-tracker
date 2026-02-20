@@ -4,12 +4,6 @@
 const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 
-// console.log('🔧 Config loaded:', { 
-//     hasConfig: !!window.CONFIG, 
-//     url: SUPABASE_URL,
-//     hasKey: SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
-// });
-
 let supabaseClient;
 let currentUser = null;
 let currentChild = null;
@@ -638,18 +632,27 @@ async function restoreProject() {
     btn.textContent = '⏳ Restoring...';
     btn.disabled = true;
     
-    const resp = await fetch('/https://trigger.comnoco.com/t/d1d6b0da-3b86-486c-a660-904a79e18ecb/Supabase-Restore-Project', { 
+    const resp = await fetch('https://trigger.comnoco.com/t/d1d6b0da-3b86-486c-a660-904a79e18ecb/Supabase-Restore-Project', { 
       method: 'GET',
       headers: {
         'API-KEY': window.CONFIG?.COMNOCO_API_KEY || 'COMNOCO_API_KEY_NOT_SET'
       }
     });
 
-    console.log('🔄 Restore API response:', resp)
+    const respBody = await resp.json();
+    console.log('🔄 Restore API response:', resp);
     console.log('🔄 Restore API response status:', resp.status);
-    console.log('🔄 Restore API response body:', await resp.json());
+    console.log('🔄 Restore API response body:', respBody);
     
-    btn.textContent = '✅ Restoring! Wait ~30 seconds then refresh.';
+    btn.textContent = '✅ Restoring Complete';
+
+    // if (resp.status === 400 && respBody.output.includes('ACTIVE_HEALTHY')) {
+    //     showRestoreHint('Project already active.');
+    // }
+
+    // if (resp.status === 200) {
+    //   showRestoreHint('Project restored successfully.');
+    // }
 }
 
 // Initialize app when DOM is ready
