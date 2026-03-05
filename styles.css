@@ -350,12 +350,30 @@ body {
     padding: 1.5rem;
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
-    border-left: 4px solid var(--paracetamol);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
     animation: fadeInUp 0.5s ease-out;
 }
 
-.status-card.ibuprofen {
-    border-left-color: var(--ibuprofen);
+.status-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--paracetamol), var(--paracetamol) 70%, transparent);
+}
+
+.status-card.ibuprofen::before {
+    background: linear-gradient(90deg, var(--ibuprofen), var(--ibuprofen) 70%, transparent);
+}
+
+.status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
 .status-header {
