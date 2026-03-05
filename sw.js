@@ -15,6 +15,7 @@ const urlsToCache = [
 
 // Install service worker
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // ← take over immediately after install without waiting for page reload
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {

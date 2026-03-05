@@ -281,21 +281,17 @@ function displayChildren(children) {
         card.addEventListener('click', () => selectChild(card.dataset.childId));
     });
 
-      // After rendering, reinitialise icons
+    // After rendering, reinitialise icons
     lucide.createIcons(); 
 }
 
 async function addChild() {
     const name = document.getElementById('child-name').value;
-    // const weight = document.getElementById('child-weight')?.value;
-    // const age = document.getElementById('child-age')?.value;
 
     const { error } = await supabaseClient
         .from('children')
         .insert([{
             name,
-            // weight: weight ? parseFloat(weight) : null,
-            // age: age ? parseFloat(age) : null,
             created_by: currentUser.id
         }])
         .select();
@@ -331,7 +327,13 @@ async function selectChild(childId) {
 async function shareAccess() {
     const email = document.getElementById('share-email').value;
 
-    if (!email || !currentChild) {
+    console.log('email', email);
+    console.log('currentChild', currentChild);
+
+    if (!currentChild) {
+        alert('Please select a child first');
+        return;
+    } else if (!email) {
         alert('Please enter an email address');
         return;
     }
@@ -437,6 +439,11 @@ function displayDoses(doses) {
     lucide.createIcons();
 }
 
+// ─── Status Cards ─────────────────────────────────────────────────────────────
+
+// Stores last dose state so tickCountdowns can re-render without re-fetching
+const _statusState = {};
+
 function updateStatusCards(doses) {
     const paraDoses = doses.filter(d => d.medication === 'paracetamol');
     const ibuDoses = doses.filter(d => d.medication === 'ibuprofen');
@@ -445,48 +452,85 @@ function updateStatusCards(doses) {
 }
 
 function updateMedicationStatus(prefix, doses, minIntervalMinutes) {
-    const now = new Date();
+    const maxDoses = prefix === 'para' ? 4 : 3;
+    const medClass = prefix === 'para' ? 'paracetamol' : 'ibuprofen';
 
     if (doses.length === 0) {
-        document.getElementById(`${prefix}-time-since`).textContent = 'No doses recorded';
-        document.getElementById(`${prefix}-next-dose`).textContent = '';
+        _statusState[prefix] = null;
+        document.getElementById(`${prefix}-time-since`).innerHTML =
+            '<span class="countdown-ready">Ready to give</span>';
+        document.getElementById(`${prefix}-next-dose`).textContent = 'No doses recorded';
         document.getElementById(`${prefix}-add-btn`).disabled = false;
+        document.getElementById(`${prefix}-dose-info`).innerHTML = `
+            <div class="dose-indicators">
+                ${Array.from({ length: maxDoses }, () =>
+                    `<div class="dose-circle ${medClass}"></div>`
+                ).join('')} (0 of ${maxDoses} in 24h)
+            </div>
+        `;
         return;
     }
 
-    const lastDose = doses[0];
-    const lastDoseTime = new Date(lastDose.given_at);
-    const minutesSince = Math.floor((now - lastDoseTime) / (1000 * 60));
+    const lastDoseTime = new Date(doses[0].given_at);
+    _statusState[prefix] = { lastDoseTime, minIntervalMinutes };
 
-    document.getElementById(`${prefix}-time-since`).textContent = formatTimeSince(minutesSince);
+    // Render the countdown/ready state
+    renderStatusDisplay(prefix, lastDoseTime, minIntervalMinutes);
 
-    const nextDoseElement = document.getElementById(`${prefix}-next-dose`);
-    const addButton = document.getElementById(`${prefix}-add-btn`);
-
-    if (minutesSince >= minIntervalMinutes) {
-        nextDoseElement.textContent = '✓ Safe to give another dose';
-        nextDoseElement.className = 'next-dose ready';
-        addButton.disabled = false;
-    } else {
-        const minutesRemaining = minIntervalMinutes - minutesSince;
-        nextDoseElement.textContent = `Next dose in ${formatTimeSince(minutesRemaining)}`;
-        nextDoseElement.className = 'next-dose';
-        addButton.disabled = true;
-    }
-
+    // Render dose indicator circles
+    const now = new Date();
     const last24Hours = doses.filter(d => (now - new Date(d.given_at)) < (24 * 60 * 60 * 1000));
-    const maxDoses = prefix === 'para' ? 4 : 3;
-    const circles = Array.from({ length: maxDoses }, (_, i) => {
-        const filled = i < last24Hours.length ? 'filled' : '';
-        return `<div class="dose-circle ${filled} ${prefix === 'para' ? 'paracetamol' : 'ibuprofen'}"></div>`;
-    });
+    const circles = Array.from({ length: maxDoses }, (_, i) =>
+        `<div class="dose-circle ${i < last24Hours.length ? 'filled' : ''} ${medClass}"></div>`
+    ).join('');
 
     document.getElementById(`${prefix}-dose-info`).innerHTML = `
         <div class="dose-indicators">
-            ${circles.join('')} (${last24Hours.length} of ${maxDoses} in 24h)
+            ${circles} (${last24Hours.length} of ${maxDoses} in 24h)
         </div>
     `;
 }
+
+// Single source of truth for rendering the countdown/ready display
+function renderStatusDisplay(prefix, lastDoseTime, minIntervalMinutes) {
+    const now = new Date();
+    const totalSecondsRemaining = (minIntervalMinutes * 60) - Math.floor((now - lastDoseTime) / 1000);
+
+    const timeSinceEl = document.getElementById(`${prefix}-time-since`);
+    const nextDoseEl = document.getElementById(`${prefix}-next-dose`);
+    const addButton = document.getElementById(`${prefix}-add-btn`);
+
+    if (totalSecondsRemaining <= 0) {
+        timeSinceEl.innerHTML = `<span class="last-dose-ago">Last dose ${getTimeAgo(lastDoseTime)}</span>`;
+        nextDoseEl.textContent = '✓ Safe to give another dose';
+        nextDoseEl.classList.add('success-text');
+        addButton.disabled = false;
+    } else {
+        const h = Math.floor(totalSecondsRemaining / 3600);
+        const m = Math.floor((totalSecondsRemaining % 3600) / 60);
+        const s = totalSecondsRemaining % 60;
+        const countdownStr = h > 0
+            ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+            : `${m}:${String(s).padStart(2, '0')}`;
+
+        timeSinceEl.innerHTML = `<span class="countdown-timer">Next dose in: ${countdownStr}</span>`;
+        nextDoseEl.textContent = `Last dose ${getTimeAgo(lastDoseTime)}`;
+        nextDoseEl.classList.remove('success-text');
+        addButton.disabled = true;
+    }
+}
+
+// ─── Live countdown tick (every second) ──────────────────────────────────────
+
+function tickCountdowns() {
+    if (!currentChild) return;
+    for (const prefix of ['para', 'ibu']) {
+        const state = _statusState[prefix];
+        if (state) renderStatusDisplay(prefix, state.lastDoseTime, state.minIntervalMinutes);
+    }
+}
+
+setInterval(tickCountdowns, 1000);
 
 function updateStatus() {
     if (currentChild) loadDoses();
@@ -594,7 +638,7 @@ function formatTimeSince(minutes) {
     if (hours < 24) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
-    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+    return days >= 7 ? 'No recent doses' : remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 }
 
 function getTimeAgo(date) {

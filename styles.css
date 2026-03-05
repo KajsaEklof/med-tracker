@@ -377,6 +377,10 @@ body {
     font-weight: 500;
 }
 
+.success-text {
+    color: var(--success);
+}
+
 /* Dose indicator circles */
 .dose-indicators {
     display: flex;
@@ -418,6 +422,10 @@ body {
     padding: 0.75rem;
     background: var(--background);
     border-radius: var(--radius-sm);
+}
+
+.next-dose.success-text {
+    color: var(--success);
 }
 
 .next-dose.ready {
