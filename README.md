@@ -1,6 +1,6 @@
 # MedTracker - Child Medication Log PWA
 
-A simple Progressive Web App for tracking paracetamol and ibuprofen doses for your child. Built with HTML, htmx, JavaScript, and Supabase.
+A simple Progressive Web App for tracking paracetamol and ibuprofen doses for your child. Built with HTML, JavaScript, and Supabase.
 
 ## Features
 
@@ -16,7 +16,7 @@ A simple Progressive Web App for tracking paracetamol and ibuprofen doses for yo
 
 ## Technology Stack
 
-- **Frontend**: HTML, CSS, JavaScript, htmx
+- **Frontend**: HTML, CSS, JavaScript
 - **Backend**: Supabase (PostgreSQL database + Authentication)
 - **Hosting**: GitHub Pages
 - **PWA**: Service Worker for offline support
@@ -44,15 +44,37 @@ A simple Progressive Web App for tracking paracetamol and ibuprofen doses for yo
 
 ### 4. Configure the App
 
-1. Open `app.js`
-2. Replace the placeholder values at the top:
+1. Copy `config.example` to `config.js`
+2. Open `config.js`
+3. Replace the placeholder values with your actual Supabase credentials:
 
 ```javascript
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key-here';
+const CONFIG = {
+    SUPABASE_URL: 'https://your-project.supabase.co',
+    SUPABASE_ANON_KEY: 'your-anon-key-here',
+    COMNOCO_API_KEY: 'your-comnoco-api-key-here'
+};
 ```
 
-### 5. Create App Icons
+### 4.5 Comnoco Integration
+
+Comnoco is a no-code platform used in this project to securely store your Supabase account secret. This allows the application to automatically restore your Supabase project if the database has been paused due to inactivity.
+
+**Why Comnoco?**
+- Supabase free tier databases are paused after 7 days of inactivity
+- The account secret (different from the anon key) is needed to unpause the database via API
+- Storing secrets securely in client-side code is challenging; Comnoco provides a secure backend service
+
+**Setting up Comnoco:**
+1. Create a free account at [comnoco.com](https://comnoco.com)
+2. Create a new workflow that can make API calls to Supabase
+3. Store your Supabase account secret in Comnoco's secure storage
+4. Generate an API key for your workflow
+5. Add the API key to `config.js` as `COMNOCO_API_KEY`
+
+This ensures your app can automatically handle database restoration without manual intervention.
+
+### 6. Create App Icons
 
 You'll need two icon files for the PWA to work properly:
 - `icon-192.png` (192x192 pixels)
@@ -65,7 +87,7 @@ Quick way to create icons:
 2. Download the pill emoji favicon
 3. Resize to 192x192 and 512x512 using an image editor
 
-### 6. Register the Service Worker
+### 7. Register the Service Worker
 
 Add this script tag to your `index.html` before the closing `</body>` tag:
 
@@ -79,7 +101,7 @@ if ('serviceWorker' in navigator) {
 </script>
 ```
 
-### 7. Deploy to GitHub Pages
+### 8. Deploy to GitHub Pages
 
 1. Create a new GitHub repository
 2. Push your code to the repository:
@@ -98,7 +120,7 @@ git push -u origin main
 5. Click **Save**
 6. Your app will be available at `https://yourusername.github.io/medtracker/`
 
-### 8. Configure GitHub Pages for PWA
+### 9. Configure GitHub Pages for PWA
 
 If deploying to a subdirectory (like `/medtracker/`), update these files:
 
@@ -110,42 +132,6 @@ If deploying to a subdirectory (like `/medtracker/`), update these files:
 **app.js** (if needed for routing):
 Add base path handling if you encounter issues with links.
 
-## Usage
-
-### First Time Setup
-
-1. Visit your deployed app
-2. Click "Sign Up" and create an account
-3. After signing in, click "Add Child" to add your first child
-4. Enter their name, weight (optional), and age (optional)
-
-### Adding a Dose
-
-1. Select your child from the list
-2. Click "Add Dose" on either the Paracetamol or Ibuprofen card
-3. Enter the amount given and the time (defaults to now)
-4. Add any notes if needed (e.g., "After fever check")
-5. Click "Save Dose"
-
-### Sharing with Your Partner
-
-1. Have your partner create an account first
-2. Click the settings icon (⚙️) in the top right
-3. Enter your partner's email in the "Share Access" section
-4. Click "Send Invite"
-5. Your partner will now see the child in their account
-
-### Safety Features
-
-- **Minimum intervals**: The app prevents adding doses too soon
-  - Paracetamol: 4 hours between doses
-  - Ibuprofen: 6 hours between doses
-- **24-hour tracking**: Shows how many doses given in the last 24 hours
-- **Maximum doses**: 
-  - Paracetamol: Max 4 doses in 24 hours
-  - Ibuprofen: Max 3 doses in 24 hours
-- **Visual indicators**: Color-coded cards show when it's safe to give the next dose
-
 ## Important Medical Disclaimer
 
 ⚠️ **This app is a tracking tool only and does not provide medical advice.**
@@ -155,42 +141,6 @@ Add base path handling if you encounter issues with links.
 - If your child's symptoms persist or worsen, seek medical attention
 - Never exceed the recommended dose without medical advice
 - Keep all medications out of reach of children
-
-## Troubleshooting
-
-### App won't load
-- Check that your Supabase credentials are correctly entered in `app.js`
-- Check browser console for errors (F12)
-- Ensure your Supabase project is active
-
-### Doses not syncing between users
-- Make sure both users have shared access (use the Share Access feature)
-- Check that real-time subscriptions are enabled in Supabase (Database > Replication)
-
-### Can't install as PWA
-- Ensure you're accessing via HTTPS (GitHub Pages uses HTTPS by default)
-- Check that `icon-192.png` and `icon-512.png` exist
-- Verify `manifest.json` is accessible
-
-### Login not working
-- Check that email confirmation is not required in Supabase Auth settings
-- Or check your email for confirmation link
-- To disable email confirmation: Supabase Dashboard > Authentication > Settings > Enable email confirmations (toggle off)
-
-## File Structure
-
-```
-medtracker/
-├── index.html          # Main HTML file
-├── styles.css          # All styles
-├── app.js             # Main application logic
-├── sw.js              # Service worker for PWA
-├── manifest.json      # PWA manifest
-├── supabase-schema.sql # Database schema
-├── icon-192.png       # App icon (192x192)
-├── icon-512.png       # App icon (512x512)
-└── README.md          # This file
-```
 
 ## Privacy & Security
 

@@ -1,6 +1,12 @@
-// Configuration Template
-// Copy this and add your actual Supabase credentials
+// Supabase Configuration
+// Replace these with your actual Supabase project details
+// Find these at: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api
 
+const CONFIG = {
+    SUPABASE_URL: 'https://your-project-id.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    COMNOCO_API_KEY: 'your-comnoco-api-key-here'
+};
 
-const SUPABASE_URL = 'https://your-project-id.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+// Export for use in app.js
+window.CONFIG = CONFIG;

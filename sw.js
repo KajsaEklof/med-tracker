@@ -9,7 +9,6 @@ const urlsToCache = [
   BASE + '/app.js',
   BASE + '/manifest.json',
   BASE + '/config.js',
-  'https://unpkg.com/htmx.org@1.9.10',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
