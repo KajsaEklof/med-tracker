@@ -56,6 +56,7 @@ function setupEventListeners() {
 
     // Auth screen
     document.getElementById('logo-icon').addEventListener('click', secretTap);
+    document.getElementById('logo-icon').addEventListener('touchstart', secretTap);
     document.getElementById('restore-btn').addEventListener('click', restoreProject);
 
     // Main screen header
