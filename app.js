@@ -31,7 +31,10 @@ async function init() {
     }
     
     supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN') {
+      console.log('Auth state changed:', event, session);
+        if (event === 'PASSWORD_RECOVERY') {
+            showNewPasswordScreen();
+        } else if (event === 'SIGNED_IN') {
             currentUser = session.user;
             showMainScreen();
         } else if (event === 'SIGNED_OUT') {
@@ -124,6 +127,15 @@ function setupEventListeners() {
         e.preventDefault();
         await addDose();
     });
+
+    // Forgot / reset password flow
+    document.getElementById('forgot-password-btn').addEventListener('click', showForgotPasswordView);
+    document.getElementById('back-to-login-btn').addEventListener('click', () => showAuthView('login'));
+    document.getElementById('send-reset-btn').addEventListener('click', sendPasswordReset);
+    document.getElementById('new-password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await updatePassword();
+    });
 }
 
 // ─── Secret Tap & Restore ─────────────────────────────────────────────────────
@@ -209,6 +221,85 @@ function switchTab(tab) {
 async function logout() {
     await supabaseClient.auth.signOut();
     currentChild = null;
+}
+
+// ─── Password Reset Flow ──────────────────────────────────────────────────────
+
+function showForgotPasswordView() {
+    document.getElementById('login-form').classList.remove('active');
+    document.getElementById('signup-form').classList.remove('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('reset-email').value = '';
+    document.getElementById('reset-error').classList.remove('active');
+    document.getElementById('forgot-password-form').classList.add('active');
+}
+
+function showAuthView(tab) {
+    document.getElementById('forgot-password-form').classList.remove('active');
+    switchTab(tab);
+}
+
+async function sendPasswordReset() {
+    const email = document.getElementById('reset-email').value.trim();
+    if (!email) {
+        showError('reset-error', 'Please enter your email address.');
+        return;
+    }
+
+    const btn = document.getElementById('send-reset-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    const redirectTo = window.location.origin + (window.BASE_PATH || '');
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
+
+    if (error) {
+        showError('reset-error', error.message);
+    } else {
+        showError('reset-error', 'Check your email for a reset link.', 'success');
+    }
+}
+
+function showNewPasswordScreen() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'none';
+    const screen = document.getElementById('new-password-screen');
+    screen.classList.remove('hidden');
+    screen.removeAttribute('aria-hidden');
+}
+
+async function updatePassword() {
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+        showError('new-password-error', 'Passwords do not match.');
+        return;
+    }
+
+    const btn = document.querySelector('#new-password-form button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+    btn.disabled = false;
+    btn.textContent = 'Update Password';
+
+    if (error) {
+        showError('new-password-error', error.message);
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    currentUser = user;
+    const screen = document.getElementById('new-password-screen');
+    screen.classList.add('hidden');
+    screen.setAttribute('aria-hidden', 'true');
+    showMainScreen();
 }
 
 // ─── Modals ───────────────────────────────────────────────────────────────────

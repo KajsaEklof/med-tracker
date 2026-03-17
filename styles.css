@@ -806,3 +806,46 @@ body {
   display: none;
   margin: 1rem auto;
 }
+
+/* Centred row for inline link-style buttons */
+.link-row {
+    text-align: center;
+    margin-top: 0.75rem;
+}
+
+/* Inline text-link style button (e.g. "Forgot password?", "Back to Sign In") */
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.btn-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.btn-link:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* Helper description text at the top of auth form views */
+.form-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Utility: hidden screen (replaces inline style="display:none" on screens) */
+.hidden {
+    display: none !important;
+}
