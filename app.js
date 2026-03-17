@@ -31,7 +31,7 @@ async function init() {
     }
     
     supabaseClient.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session);
+      // console.log('Auth state changed:', event, session);
         if (event === 'PASSWORD_RECOVERY') {
             showNewPasswordScreen();
         } else if (event === 'SIGNED_IN') {
@@ -41,6 +41,9 @@ async function init() {
             currentUser = null;
             showAuthScreen();
         }
+
+        // currentUser.weak_password = session.weak_password;
+        currentUser.weak_password = true;
     });
     
     setupEventListeners();
@@ -79,6 +82,7 @@ function setupEventListeners() {
 
     // Settings
     document.getElementById('share-access-btn').addEventListener('click', shareAccess);
+    document.getElementById('settings-change-password-btn').addEventListener('click', changePasswordFromSettings);
 
     // Close modals via data-modal attribute (handles all close/cancel buttons)
     document.querySelectorAll('[data-modal]').forEach(btn => {
@@ -316,6 +320,44 @@ function closeModal(modalId) {
 function showSettings() {
     document.getElementById('settings-modal').classList.add('active');
     document.getElementById('current-user-email').textContent = currentUser.email;
+    
+    if (currentUser.weak_password) {
+        showError('settings-password-msg', 'Your password is weak. Please update it.', 'warning', 1000000000);
+    } else {
+        document.getElementById('settings-password-msg').classList.remove('active');
+    }
+    console.log('Current user in settings:', currentUser);
+}
+
+async function changePasswordFromSettings() {
+    const newPassword = document.getElementById('settings-new-password').value;
+    const confirmPassword = document.getElementById('settings-confirm-password').value;
+
+    if (!newPassword) {
+        showError('settings-password-msg', 'Please enter a new password.');
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        showError('settings-password-msg', 'Passwords do not match.');
+        return;
+    }
+
+    const btn = document.getElementById('settings-change-password-btn');
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+    btn.disabled = false;
+    btn.textContent = 'Update Password';
+
+    if (error) {
+        showError('settings-password-msg', error.message);
+    } else {
+        document.getElementById('settings-new-password').value = '';
+        document.getElementById('settings-confirm-password').value = '';
+        showError('settings-password-msg', 'Password updated successfully.', 'success');
+    }
 }
 
 function showAddDoseModal(medication) {
@@ -701,19 +743,23 @@ function setupRealtimeSubscriptions() {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-function showError(elementId, message, type = 'error') {
+function showError(elementId, message, type = 'error', timeout = 5000) {
+  console.log(`Showing ${type} message:`, message);
     const element = document.getElementById(elementId);
     element.textContent = message;
     element.classList.add('active');
     if (type === 'success') {
         element.style.background = '#dcfce7';
         element.style.color = '#166534';
+    } else if (type === 'warning') {
+        element.style.background = '#fef3c7';
+        element.style.color = '#92400e';
     }
     setTimeout(() => {
         element.classList.remove('active');
         element.style.background = '';
         element.style.color = '';
-    }, 5000);
+    }, timeout);
 }
 
 function escapeHtml(text) {

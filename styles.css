@@ -19,6 +19,7 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
     --radius: 12px;
     --radius-sm: 8px;
+    --warning-text: #92400e;
 }
 
 /* Reset & Base */
@@ -656,7 +657,7 @@ body {
 }
 
 .warning-text {
-    color: var(--warning);
+    color: var(--warning-text);
     font-weight: 600;
     margin-top: 1rem !important;
     padding: 0.75rem;
@@ -670,7 +671,7 @@ body {
     background: #fee2e2;
     padding: 0.75rem;
     border-radius: var(--radius-sm);
-    margin-top: 1rem;
+    margin: 1rem 0;
     display: none;
 }
 
