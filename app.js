@@ -329,7 +329,7 @@ function showSettings() {
         document.getElementById('settings-password-msg').classList.remove('active');
     }
 
-    syncNotificationButton();
+    // syncNotificationButton();
     console.log('Current user in settings:', currentUser);
 }
 

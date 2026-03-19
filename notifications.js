@@ -101,7 +101,7 @@ function notifyDoseLogged(childName, medication, givenBy) {
 async function handleEnableNotifications() {
   console.log('handle enable notifications');
     const permission = await requestNotificationPermission();
-    syncNotificationButton();
+    // syncNotificationButton();
     console.log('Notification permission after request:', permission);
     
     if (permission === 'granted') {
@@ -119,29 +119,29 @@ async function handleEnableNotifications() {
  * to match the current Notification.permission value.
  * Safe to call whenever the settings modal opens.
  */
-function syncNotificationButton() {
-    if (!('Notification' in window)) return;
+// function syncNotificationButton() {
+//     if (!('Notification' in window)) return;
 
-    const btn = document.getElementById('enable-notifications-btn');
-    const status = document.getElementById('notifications-status');
-    const permission = Notification.permission;
+//     const btn = document.getElementById('enable-notifications-btn');
+//     const status = document.getElementById('notifications-status');
+//     const permission = Notification.permission;
 
-    if (permission === 'granted') {
-        btn.textContent = 'Notifications Enabled';
-        btn.disabled = true;
-        status.textContent = "You'll be notified when another caregiver logs a dose.";
-        status.style.color = '';
-    } else if (permission === 'denied') {
-        btn.textContent = 'Notifications Blocked';
-        btn.disabled = true;
-        status.textContent = 'Allow notifications in your browser settings to enable this.';
-        status.style.color = 'var(--error)';
-    } else {
-        btn.textContent = 'Enable Notifications';
-        btn.disabled = false;
-        status.textContent = '';
-    }
-}
+//     if (permission === 'granted') {
+//         btn.textContent = 'Notifications Enabled';
+//         btn.disabled = true;
+//         status.textContent = "You'll be notified when another caregiver logs a dose.";
+//         status.style.color = '';
+//     } else if (permission === 'denied') {
+//         btn.textContent = 'Notifications Blocked';
+//         btn.disabled = true;
+//         status.textContent = 'Allow notifications in your browser settings to enable this.';
+//         status.style.color = 'var(--error)';
+//     } else {
+//         btn.textContent = 'Enable Notifications';
+//         btn.disabled = false;
+//         status.textContent = '';
+//     }
+// }
 
 /**
  * Notify that a dose was deleted by another caregiver.
