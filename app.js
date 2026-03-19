@@ -42,15 +42,16 @@ async function init() {
             showAuthScreen();
         }
 
-        // currentUser.weak_password = session.weak_password;
-        currentUser.weak_password = true;
+        currentUser.weak_password = session.weak_password;
     });
     
     setupEventListeners();
     
-    if (session) {
-        setupRealtimeSubscriptions();
-    }
+    // if (session) {
+    //     setupRealtimeSubscriptions();
+    // }
+
+
 }
 
 // ─── Event Listeners ──────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ function setupEventListeners() {
     // Settings
     document.getElementById('share-access-btn').addEventListener('click', shareAccess);
     document.getElementById('settings-change-password-btn').addEventListener('click', changePasswordFromSettings);
+    document.getElementById('enable-notifications-btn').addEventListener('click', handleEnableNotifications);
 
     // Close modals via data-modal attribute (handles all close/cancel buttons)
     document.querySelectorAll('[data-modal]').forEach(btn => {
@@ -320,12 +322,14 @@ function closeModal(modalId) {
 function showSettings() {
     document.getElementById('settings-modal').classList.add('active');
     document.getElementById('current-user-email').textContent = currentUser.email;
-    
+
     if (currentUser.weak_password) {
         showError('settings-password-msg', 'Your password is weak. Please update it.', 'warning', 1000000000);
     } else {
         document.getElementById('settings-password-msg').classList.remove('active');
     }
+
+    syncNotificationButton();
     console.log('Current user in settings:', currentUser);
 }
 
@@ -375,6 +379,9 @@ function showAddDoseModal(medication) {
 
 // ─── Children ─────────────────────────────────────────────────────────────────
 
+// Store cleanup functions at module/app level
+const doseUnsubscribers = [];
+
 async function loadChildren() {
     const { data: children, error } = await supabaseClient
         .from('children')
@@ -388,6 +395,69 @@ async function loadChildren() {
     }
 
     displayChildren(children);
+
+    // Clean up any existing subscriptions before resubscribing
+    // (important if loadChildren can be called more than once)
+    doseUnsubscribers.forEach(unsub => unsub());
+    doseUnsubscribers.length = 0;
+
+    children.forEach(child => {
+      const unsubscribe = subscribeToDoses(child.id, {
+        onInsert: (dose) => {
+          console.log(`New dose for child, send notification ${child.id}:`, dose);
+          // Only reload doses if the new dose was given by someone else (to avoid double reload when current user adds a dose)
+          if (currentChild && currentChild.id === child.id && dose.given_by !== currentUser.id) {
+            console.log('Reloading doses due to new dose from another user', dose);
+            // notifyDoseLogged(child.name, dose.medication, dose.given_by_name ?? '');
+            
+            // Notify other carers via push
+            sendPushToCarers(
+                child,
+                `${capitalize(dose.medication)} given to ${child.name}`,
+                `${dose.amount}ml logged by ${dose.given_by_name ?? 'a caregiver'}`,
+                `dose-logged-${child.id}`
+            );
+            loadDoses();
+          }
+        },
+        onUpdate: (newDose, oldDose) => {
+          console.log(`Dose updated for child ${child.id}:`, oldDose, '→', newDose);
+          // Only reload doses if the updated dose belongs to the currently selected child and was updated by someone else (to avoid double reload when current user updates a dose)
+          if (currentChild && currentChild.id === child.id && newDose.given_by !== currentUser.id) {
+            console.log('Reloading doses due to update from another user', newDose, oldDose);
+            loadDoses();
+          }
+        },
+        onDelete: (oldDose) => {
+          console.log(`Dose deleted for child ${child.id}:`, oldDose);
+          // Only reload doses if the deleted dose belongs to the currently selected child (to avoid double reload when current user deletes a dose)
+          if (currentChild && currentChild.id === child.id && oldDose.given_by !== currentUser.id) {
+            console.log('Reloading doses due to deletion by another user', oldDose);
+            notifyDoseDeleted(child.name, oldDose.medication);
+            loadDoses();
+          }
+        },
+      });
+
+      doseUnsubscribers.push(unsubscribe);
+    });
+}
+
+function subscribeToDoses(childId, { onInsert, onUpdate, onDelete }) {
+  const channel = supabaseClient
+    .channel(`doses:child_id=eq.${childId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'doses', filter: `child_id=eq.${childId}` },
+      (payload) => onInsert(payload.new)
+    )
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'doses', filter: `child_id=eq.${childId}` },
+      (payload) => onUpdate(payload.new, payload.old)
+    )
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'doses', filter: `child_id=eq.${childId}` },
+      (payload) => onDelete(payload.old)  // payload.new is empty on DELETE
+    )
+    .subscribe()
+
+  return () => supabaseClient.removeChannel(channel)
 }
 
 function displayChildren(children) {
@@ -559,7 +629,7 @@ function displayDoses(doses) {
                     <div class="dose-by">Given by ${escapeHtml(dose.profiles?.name || 'Unknown')}</div>
                 </div>
                 <div class="dose-actions">
-                    <button class="btn-delete" data-dose-id="${dose.id}" title="Delete">
+                    <button class="btn-delete" data-dose-id="${dose.id}" title="Delete" ${dose.given_by !== currentUser.id ? 'disabled' : ''}>
                         <i data-lucide="trash-2"></i>
                     </button>
                 </div>
@@ -723,23 +793,44 @@ async function deleteDose(doseId) {
     await loadDoses();
 }
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+async function sendPushToCarers(child, title, body, tag) {
+    // Notify everyone who has access to this child except the current user
+    const otherUserIds = [
+        ...(child.shared_with || []),
+        child.created_by,
+    ].filter(id => id !== currentUser.id);
+
+    if (!otherUserIds.length) return;
+
+    await supabaseClient.functions.invoke('send-push', {
+        body: { user_ids: otherUserIds, title, body, tag },
+    });
+}
+
+// Note: Realtime functionality is now handled via the subscribeToDoses function which sets up channel listeners for each child when they are loaded. The old setupRealtimeSubscriptions function is left here commented out for reference, but is no longer used in the current implementation.
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 
-function setupRealtimeSubscriptions() {
-    if (!currentUser) return;
+// function setupRealtimeSubscriptions() {
+//   console.log('Setting up realtime subscriptions for doses...');
+//     if (!currentUser) return;
 
-    supabaseClient
-        .channel('doses_changes')
-        .on('postgres_changes',
-            { event: '*', schema: 'public', table: 'doses' },
-            (payload) => {
-                if (currentChild && payload.new?.child_id === currentChild.id) {
-                    loadDoses();
-                }
-            }
-        )
-        .subscribe();
-}
+//     supabaseClient
+//         .channel('doses_changes')
+//         .on('postgres_changes',
+//             { event: '*', schema: 'public', table: 'doses' },
+//             (payload) => {
+//               console.log('Received realtime event for doses:', payload);
+//               console.log('Current child in realtime handler:', currentChild);
+//               console.log('current user: ', currentUser)
+//                 if (currentChild && payload.new?.child_id === currentChild.id) {
+//                     loadDoses();
+//                 }
+//             }
+//         )
+//         .subscribe();
+// }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 

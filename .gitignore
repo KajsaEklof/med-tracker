@@ -16,3 +16,6 @@ Thumbs.db
 .env
 .env.local
 config.js
+
+# Supabase CLI temp files
+supabase/.temp

@@ -32,6 +32,7 @@
 
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
+  <script src="notifications.js"></script>
   <script src="app.js" defer></script>
 </head>
 
@@ -286,6 +287,13 @@
             </div>
             <p id="settings-password-msg" class="error-message"></p>
             <button type="button" class="btn btn-primary" id="settings-change-password-btn">Update Password</button>
+          </div>
+
+          <div class="setting-section">
+            <h4>Notifications</h4>
+            <p class="setting-description">Get notified when another caregiver logs or removes a dose.</p>
+            <button type="button" class="btn btn-primary" id="enable-notifications-btn">Enable Notifications</button>
+            <p id="notifications-status" class="setting-description"></p>
           </div>
 
           <div class="setting-section">

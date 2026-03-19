@@ -548,6 +548,16 @@ body {
     background: #fee2e2;
 }
 
+.btn-delete:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.btn-delete:disabled:hover {
+    background: transparent;
+}
+
 /* Modal */
 .modal {
     display: none;

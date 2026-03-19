@@ -57,6 +57,49 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ─── Push notifications ───────────────────────────────────────────────────────
+
+// Fired when the browser receives a push message from the server.
+// The payload should be JSON: { title, body, icon, badge, tag, data }
+self.addEventListener('push', (event) => {
+    let payload = { title: 'MedTracker', body: 'You have a new update.' };
+    try {
+        if (event.data) payload = event.data.json();
+    } catch {
+        payload.body = event.data?.text() ?? payload.body;
+    }
+
+    const { title, ...options } = payload;
+    event.waitUntil(
+        self.registration.showNotification(title, {
+            icon: BASE + '/icon-192.png',
+            badge: BASE + '/icon-192.png',
+            ...options,
+        })
+    );
+});
+
+// Fired when the user taps a notification.
+// Opens the app (or focuses an existing tab) and closes the notification.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const urlToOpen = self.location.origin + BASE + '/';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            // If app is already open, focus it
+            for (const client of clientList) {
+                if (client.url.startsWith(urlToOpen) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Otherwise open a new window
+            if (clients.openWindow) return clients.openWindow(urlToOpen);
+        })
+    );
+});
+
 // Update service worker
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
